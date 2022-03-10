@@ -18,6 +18,7 @@ module.exports = class Bot extends Client {
     constructor(options) {
         super(clientOptions(options));
         
+        this.apiRoutes = new Map();
         this.services = new Map();
         this.subscribers = new Map();
         this.commands = new Map();
@@ -28,27 +29,45 @@ module.exports = class Bot extends Client {
         this.init();
     }
 
-    init() {
+    init() {        
         // Services
         const servicesPath = path.join(__dirname, "services");
-        const errors = [];
+        const servicesErrors = [];
         fs.readdirSync(servicesPath).forEach(serviceName => {
             let service = require(path.join(servicesPath, serviceName));
             const name = service.name;
             try {
                 service = new service(this);
             } catch (err) {
-                errors.push(err);
+                servicesErrors.push(err);
             }
             this.services.set(name.toLowerCase(), service);
         })
         this.logger = this.services.get("logger");
         this.config = this.services.get("config");
+        this.database = this.services.get("database");
         this.services.get("commands").register(this);
-        if (errors.length) {
-            this.logger.error("Error invoking services:", ...errors);
+        if (servicesErrors.length) {
+            this.logger.error("Error invoking services:", ...servicesErrors);
         }
         this.logger.debug(`Finished loading ${this.services.size} services`);
+
+
+        // API Routes
+        const apiRoutesPath = path.join(__dirname, "api-routes");
+        const apiRoutesErrors = [];
+        fs.readdirSync(apiRoutesPath).forEach(routeName => {
+            let route = require(path.join(apiRoutesPath, routeName));
+            try {
+                route = new route(this);
+            } catch (err) {
+                apiRoutesErrors.push(err);
+            }
+            this.apiRoutes.set(route.apiRoute, route);
+        })
+        if (apiRoutesErrors.length) {
+            this.logger.error("Error invoking routes:", ...apiRoutesErrors);
+        }
         
 
         // Subscribers
@@ -92,8 +111,8 @@ module.exports = class Bot extends Client {
         for (let i = 0; i < subscribers.length; i++) {
             const subscriber = subscribers[i];
             try {
-                await subscriber.run(this, ...data);
-                this.logger.debug(`Executed subscriber ${i + 1}/${subscribers.length} for event ${event}`);
+                this.logger.debug(`Executing subscriber ${i + 1}/${subscribers.length} for event ${event}`);
+                subscriber.run(this, ...data)
             } catch (err) {
                 this.logger.error(`Could not execute subscriber ${i + 1}/${subscribers.length} for event ${event}:`, err);
             }
