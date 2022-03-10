@@ -19,12 +19,20 @@ module.exports = class Commands {
     
         const rest = new REST({ version: "9" }).setToken(bot.config.get("token"));
         
-        if (bot.config.get("updateCommandsOnReady")) {
+        if (bot.config.get("updateCommandsGloballyOnReady") || bot.config.get("updateCommandsTestingGuildOnReady")) {
             try {
                 bot.logger.debug("Started refreshing application (/) commands");
                 
+                let route;
+                if (bot.config.get("updateCommandsGloballyOnReady")) {
+                    bot.logger.debug("Refresh for global");
+                    route = Routes.applicationCommands(bot.config.get("clientID"));
+                } else {
+                    bot.logger.debug("Refresh for testing guild");
+                    route = Routes.applicationGuildCommands(bot.config.get("clientID"), bot.config.get("testingGuild"));
+                }
                 await rest.put(
-                    Routes.applicationGuildCommands(bot.config.get("clientID"), bot.config.get("testingGuild")),
+                    route,
                     { body: Array.from(bot.commands, ([_, value]) => value).map(command => command.data.toJSON()) }
                 )
 
