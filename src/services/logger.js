@@ -3,7 +3,7 @@ const chalk = require("chalk");
 
 module.exports = class Logger {
     _log(...args) {
-        console.log(...args)
+        console.log(...args);
     }
 
     _colourMethod(method) {
