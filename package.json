@@ -21,7 +21,10 @@
     "@discordjs/rest": "^0.3.0",
     "axios": "^0.26.0",
     "chalk": "^4.0.0",
+    "dayjs": "^1.10.8",
     "discord.js": "^13.6.0",
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.0.0",
+    "mysql2": "^2.3.3",
+    "sequelize": "^6.17.0"
   }
 }
