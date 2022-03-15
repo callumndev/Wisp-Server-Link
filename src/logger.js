@@ -1,7 +1,9 @@
 const chalk = require("chalk");
+const Config = require("./config");
 
 module.exports = class Logger {
     #log = console.log;
+    #config = Config;
 
     #colourMethod(method) {
         return chalk.bgMagenta(chalk.whiteBright(method));
@@ -14,7 +16,7 @@ module.exports = class Logger {
     }
 
     debug(...args) {
-        if (process.env.DEBUG) {
+        if (this.#config.debug) {
             this.#log(this.#colourMethod("DEBUG:"), ...this.#colourArgs(args, "magenta"));
         }
     }

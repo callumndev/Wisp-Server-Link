@@ -17,19 +17,19 @@ module.exports = class Commands {
             bot.commands.set(command.data.name, command);
         }
     
-        const rest = new REST({ version: "9" }).setToken(bot.config.get("token"));
+        const rest = new REST({ version: "9" }).setToken(bot.config.token);
         
-        if (bot.config.get("updateCommandsGloballyOnReady") || bot.config.get("updateCommandsTestingGuildOnReady")) {
+        if (bot.config.updateCommandsGloballyOnReady || bot.config.updateCommandsTestingGuildOnReady) {
             try {
                 bot.logger.debug("Started refreshing application (/) commands");
                 
                 let route;
-                if (bot.config.get("updateCommandsGloballyOnReady")) {
+                if (bot.config.updateCommandsGloballyOnReady) {
                     bot.logger.debug("Refresh for global");
-                    route = Routes.applicationCommands(bot.config.get("clientID"));
+                    route = Routes.applicationCommands(bot.config.clientID);
                 } else {
                     bot.logger.debug("Refresh for testing guild");
-                    route = Routes.applicationGuildCommands(bot.config.get("clientID"), bot.config.get("testingGuild"));
+                    route = Routes.applicationGuildCommands(bot.config.clientID, bot.config.testingGuild);
                 }
                 await rest.put(
                     route,
