@@ -6,7 +6,7 @@ module.exports = class LogInvite {
     }
     
     run(bot) {
-        if (!bot.config.get("logInviteOnReady")) return;
+        if (!bot.config.logInviteOnReady) return;
         
         const link = bot.generateInvite({
             scopes: ["bot", "applications.commands"],

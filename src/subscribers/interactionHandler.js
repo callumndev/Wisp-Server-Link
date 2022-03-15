@@ -12,7 +12,7 @@ module.exports = class InteractionHandler {
                 const command = bot.commands.get(commandName);
                 await interaction.deferReply({ ephemeral: !!command.ephemeral });
 
-                if (command.adminOnly && !bot.config.get("admins").includes(interaction.user.id)) {
+                if (command.adminOnly && !bot.config.admins.includes(interaction.user.id)) {
                     return interaction.editReply("That command is admin only!");
                 }
                 await command.execute({ bot, interaction, options });
