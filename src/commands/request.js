@@ -1,5 +1,4 @@
 const { SlashCommandBuilder, SlashCommandStringOption } = require("@discordjs/builders");
-const { MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
 
 module.exports = {
 	ephemeral: false,
@@ -12,70 +11,53 @@ module.exports = {
 				.setName("command")
 				.setDescription("The command to request for sending to the server")
 				.setRequired(true)
-		)
-		.addStringOption(
-			new SlashCommandStringOption()
-				.setName("server")
-				.setDescription("The ID, name or IP of the server you want to view")
-				.setRequired(false)
 		),
 	async execute({ bot, interaction }) {
-		const api = bot.services.get("api");
-		const utils = bot.services.get("utils");
-		const database = bot.services.get("database");
+		const ctx = bot.ctx.get(interaction.guild.id);
+		if (!ctx) return bot.error(interaction, "ctx");
 
-		if (interaction.channel.id != bot.config.get("requestChannel")) return interaction.editReply({
-			embeds: [
-				new MessageEmbed()
-					.setDescription(`Requests can only be made in <#${bot.config.get("requestChannel")}>`)
-					.setColor("RED")
-			]
-		})
-
-		const { success: successAllServers, data: servers } = await api.get("/servers?include=allocations");
-		if (!successAllServers) return api.apiError(interaction);
-
-		const server = utils.getServerFromID({ bot, interaction, servers });
-		if (!server.serverOnline) return interaction.editReply({
-			embeds: [
-				new MessageEmbed()
-					.setTitle(`${server.serverOnline ? ":green_circle:" : ":red_circle:"} ${server.name}`)
-					.setDescription("Server is offline")
-					.setColor("RED")
-			]
+		if (!ctx.isRequestChannel(interaction)) return interaction.editReply({
+			embeds: [{
+				description: `Requests can only be made in <#${ctx.requestChannel}>`,
+				color: "RED"
+			}]
 		});
+
+		const serverData = await ctx.serverData({ fetchResources: true });
+		if (!serverData) return bot.error(interaction, "api");
+		if (!serverData.serverOnline) return bot.error(interaction, "server_offline");
 
 		const command = interaction.options.get("command").value;
-		const embed = new MessageEmbed()
-			.setTitle(`${server.serverOnline ? ":green_circle:" : ":red_circle:"} ${server.name}`)
-			.setDescription([
-				`**Requester:** ${interaction.user}`,
-				`**Command:** \`${command.replace("`", "\`").replace("*", "\*")}\``,
-			].join("\n"))
-			.setTimestamp()
-			.setColor("BLUE");
-
-		const row = new MessageActionRow()
-			.addComponents(
-				new MessageButton()
-					.setCustomId(`accept_request-${"REQ_ID"}`)
-					.setLabel("Accept")
-					.setStyle("SUCCESS"),
-				new MessageButton()
-					.setCustomId(`deny_request-${"REQ_ID"}`)
-					.setLabel("Deny")
-					.setStyle("DANGER"),
-			);
-
-		const reply = await interaction.editReply({ embeds: [embed], components: [row] });
-		const request = await database.get("request");
-
-		request.create({
-			message: reply.id,
-			channel: reply.channelId,
-			requester: interaction.user.id,
-			command,
-			server: server.id
+		const reply = await interaction.editReply({
+			embeds: [{
+				title: `:${serverData.serverOnline ? "green" : "red"}_circle: ${serverData.name}`,
+				description: [
+					`**Requester:** ${interaction.user}`,
+					`**Command:** \`${command.replace("`", "\`").replace("*", "\*")}\``,
+				].join("\n"),
+				timestamp: Date.now(),
+				color: "BLUE"
+			}],
+			components: [{
+				type: 1,
+				components: [
+					{
+						type: 2,
+						label: "Accept",
+						style: 3,
+						custom_id: `accept_request-${Date.now()}`
+					},
+					{
+						type: 2,
+						label: "Deny",
+						style: 4,
+						custom_id: `deny_request-${Date.now()}`
+					}
+				]
+			}]
 		});
+
+		const request = await ctx.getModel("main", "request");
+		request.create({ message: reply.id, command });
 	}
 }

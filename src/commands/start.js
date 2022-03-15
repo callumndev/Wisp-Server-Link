@@ -1,43 +1,28 @@
-const { SlashCommandBuilder, SlashCommandStringOption } = require("@discordjs/builders");
-const { MessageEmbed } = require("discord.js");
+const { SlashCommandBuilder } = require("@discordjs/builders");
 
 module.exports = {
 	ephemeral: false,
 	adminOnly: true,
 	data: new SlashCommandBuilder()
 		.setName("start")
-		.setDescription("Start a specific server")
-		.addStringOption(
-			new SlashCommandStringOption()
-				.setName("server")
-				.setDescription("The ID, name or IP of the server you want to view")
-				.setRequired(false)
-		),
+		.setDescription("Starts the server"),
 	async execute({ bot, interaction }) {
-		const api = bot.services.get("api");
-		const utils = bot.services.get("utils");
+		const ctx = bot.ctx.get(interaction.guild.id);
+		if (!ctx) return bot.error(interaction, "ctx");
 
-		const { success: successAllServers, data: servers } = await api.get("/servers?include=allocations");
-		if (!successAllServers) return api.apiError(interaction);
+		const serverData = await ctx.serverData({ fetchResources: true });
+		if (!serverData) return bot.error(interaction, "api");
+		if (serverData.serverOnline) return bot.error(interaction, "server_already_online");
 
-		const server = utils.getServerFromID({ bot, interaction, servers });
-		if (server.serverOnline) return interaction.editReply({
-			embeds: [
-				new MessageEmbed()
-					.setTitle(`${server.serverOnline ? ":green_circle:" : ":red_circle:"} ${server.name}`)
-					.setDescription("Server is already online")
-					.setColor("RED")
-			]
+		const startServer = await ctx.power("start");
+		if (!startServer) return bot.error(interaction, "start_server");
+
+		interaction.editReply({
+			embeds: [{
+				title: serverData.name,
+				description: "Starting the server...",
+				color: "GREEN"
+			}]
 		});
-
-		const { success } = await api.post(`/servers/${server.id}/power`, { signal: "start" });
-		if (!success) return api.apiError(interaction);
-
-		const embed = new MessageEmbed()
-			.setTitle(`${server.serverOnline ? ":green_circle:" : ":red_circle:"} ${server.name}`)
-			.setDescription("Sent start power signal")
-			.setColor("GREEN");
-
-		interaction.editReply({ embeds: [embed] });
 	}
 }

@@ -47,7 +47,7 @@ module.exports = {
 						name: `${i + 1}.) ${backup.name}`,
 						get value() {
 							const description = [
-								bot.config.get("debug") && { name: "UUID Short", value: backup.uuid_short },
+								bot.config.debug && { name: "UUID Short", value: backup.uuid_short },
 								{ name: "Size", value: utils.bytesToString(backup.bytes) },
 								{ name: "Created", value: `${utils.humanize(utils._dayjs(backup.created_at).diff(utils._dayjs(new Date()), "seconds"), "seconds")} ago` },
 							].filter(Boolean);

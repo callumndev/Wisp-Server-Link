@@ -13,7 +13,7 @@ module.exports = {
 			.addFields(
 				Array.from(bot.commands, ([name, command]) => ({ name, command }))
 					.map(({ name, command }) => {
-						if (command.adminOnly && !bot.config.get("admins").includes(interaction.user.id)) return;
+						if (command.adminOnly && !bot.config.admins.includes(interaction.user.id)) return;
 
 						return {
 							name: `${command.adminOnly ? ":shield: " : ""}/${name}`,

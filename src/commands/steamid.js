@@ -1,6 +1,4 @@
 const { SlashCommandBuilder, SlashCommandStringOption } = require("@discordjs/builders");
-const { MessageEmbed } = require("discord.js");
-const { Op } = require("sequelize");
 
 module.exports = {
 	ephemeral: false,
@@ -15,29 +13,18 @@ module.exports = {
 				.setRequired(true)
 		),
 	async execute({ bot, interaction }) {
-		const database = bot.services.get("database");
-		const utils = bot.services.get("utils");
+		const ctx = bot.ctx.get(interaction.guild.id);
+		if (!ctx) return bot.error(interaction, "ctx");
 
-		const player = await database.get("player");
-		const players = await player.findAll({
-            where: {
-                SteamName: {
-                    [Op.regexp]: interaction.options.get("name").value.toLowerCase()
-                }
-            },
-            limit: 10,
-            raw: true
-        });
-		
-		const embed = new MessageEmbed()
-			.setTitle(`Steam ID`)
-			.setDescription(players.sort((a, b) => b.TimePlayed - a.TimePlayed).map(player => [
-				`**Player:** ${player.SteamName} (${player.SteamID})`,
-				`**Time Played:** ${utils.humanize(player.TimePlayed, "seconds")}`,
-				player.Rank && `**Rank:** ${player.Rank && utils.isAdminGroup(player.Rank) ? ":shield: " : ""}${player.Rank}`,
-			].filter(Boolean).join(" - ")).join("\n") || "No players found!")
-			.setColor("BLUE");
+		const serverData = await ctx.serverData();
+		if (!serverData) return bot.error(interaction, "api");
 
-		interaction.editReply({ embeds: [embed] });
+		interaction.editReply({
+			embeds: [{
+				title: `${serverData.name} - Steam ID Search`,
+				description: await ctx.steamID(interaction.options.get("name").value),
+				color: "BLUE"
+			}]
+		});
 	}
 }
