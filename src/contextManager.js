@@ -3,6 +3,7 @@ const Config = require("./config");
 const DataBase = require("./database");
 const Utils = require("./utils");
 const axios = require("axios");
+const { Op } = require("sequelize");
 
 module.exports = class ContextManager {
     logger = new Logger();
@@ -10,14 +11,14 @@ module.exports = class ContextManager {
     utils = new Utils();
     #guildID;
     #ctx;
-    #db;
+    #db = new Map();
     #rconRequests;
     #staffUserGroups;
     #cachedServerData;
     #instance;
 
     static Create(guild) {
-        if (!Object.prototype.hasOwnProperty.call(Config.context, guild)) {
+        if (!Object.hasOwnProperty.call(Config.context, guild)) {
             new Logger().error(`Unknown context guild ${guild}`);
             return null;
         }
@@ -27,7 +28,12 @@ module.exports = class ContextManager {
     constructor(guild) {
         this.#guildID = guild;
         this.#ctx = this.config.context[this.#guildID];
-        this.#db = new DataBase(this.#ctx.database);
+        for (const db in this.#ctx.database) {
+            if (Object.hasOwnProperty.call(this.#ctx.database, db)) {
+                const element = this.#ctx.database[db];
+                this.#db.set(db, new DataBase(element));
+            }
+        }
         this.#rconRequests = this.#ctx.rconRequests;
         this.#staffUserGroups = this.#ctx.staffUserGroups;
         this.#instance = axios.create({
@@ -48,16 +54,19 @@ module.exports = class ContextManager {
         return this.#ctx.server;
     }
 
-    getModel(model) {
-        return this.#db.get(model);
+    getModel(database, model) {
+        if (!this.#db.has(database)) {
+            throw new Error(`Unknown database "${database}"`);
+        }
+        return this.#db.get(database).get(model);
     }
 
     get requestChannel() {
         return this.#rconRequests.requestChannel;
     }
 
-    isRequestChannel(message) {
-        return message.channel.id == this.#rconRequests.requestChannel;
+    isRequestChannel(interaction) {
+        return interaction.channelId == this.#rconRequests.requestChannel;
     }
 
     canAcceptRequest(member) {
@@ -68,23 +77,12 @@ module.exports = class ContextManager {
         return this.#staffUserGroups.includes(group);
     }
 
-    async #fetchServerData(options = { includeAllocations: true, fetchResources: false }) {
-        let serverData = await this.#getRequest(`/servers/${this.#ctx.server}?include=allocations`);
+    async #fetchServerData(options = { includeAllocations: false, fetchResources: false }) {
+        let serverData = await this.#getRequest(`/servers/${this.#ctx.server}${options.includeAllocations ? "?include=allocations" : ""}`);
         if (!serverData || serverData.object != "server") return null;
 
         serverData = serverData.attributes;
         if (serverData.description.includes("SERVER_LINK_HIDE")) return false;
-
-        let allocations = serverData.relationships.allocations;
-        if (!allocations || allocations.object != "list" || !Array.isArray(allocations.data)) return null;
-
-        allocations = allocations.data;
-
-        const allocation = allocations
-            .filter(allocation => allocation.object == "allocation" && allocation.attributes)
-            .map(allocation => allocation.attributes)
-            .find(allocation => allocation.primary)
-        if (!allocation) return null;
 
         let server = {
             id: serverData.uuid_short,
@@ -92,6 +90,17 @@ module.exports = class ContextManager {
         }
 
         if (options.includeAllocations) {
+            let allocations = serverData.relationships.allocations;
+            if (!allocations || allocations.object != "list" || !Array.isArray(allocations.data)) return null;
+
+            allocations = allocations.data;
+
+            const allocation = allocations
+                .filter(allocation => allocation.object == "allocation" && allocation.attributes)
+                .map(allocation => allocation.attributes)
+                .find(allocation => allocation.primary)
+            if (!allocation) return null;
+
             server = Object.assign(server, {
                 ip: [allocation.ip, allocation.port].join(":")
             });
@@ -109,7 +118,11 @@ module.exports = class ContextManager {
             let diskUsage = 0;
 
             const resources = await this.#getRequest(`/servers/${this.#ctx.server}/resources`);
-            if (resources.query) {
+            if (resources.status == 1) {
+                serverOnline = true;
+            }
+
+            if (Object.keys(resources.query).length != 0) {
                 const queryPlayers = resources.query.players;
                 if (Array.isArray(queryPlayers)) {
                     players = queryPlayers.map(player => ({
@@ -135,7 +148,7 @@ module.exports = class ContextManager {
                 }
             }
 
-            if (resources.proc) {
+            if (Object.keys(resources.proc).length != 0) {
                 const processMemoryUsage = resources.proc.memory.total;
                 if (processMemoryUsage) {
                     memoryUsage = processMemoryUsage;
@@ -163,6 +176,11 @@ module.exports = class ContextManager {
         return server;
     }
 
+    clearServerDataCache() {
+        this.#cachedServerData = null;
+        return this;
+    }
+
     async serverData(options) {
         return this.#cachedServerData || await this.#fetchServerData(options);
     }
@@ -172,7 +190,7 @@ module.exports = class ContextManager {
             const { data } = await this.#instance.get(endpoint);
             return data;
         } catch (err) {
-            this.logger.error(`Error executing ctx GET request:`, err);
+            this.logger.error(`Error executing ctx GET request for endpoint "${endpoint}":`, err.message);
             return null;
         }
     }
@@ -247,7 +265,7 @@ module.exports = class ContextManager {
     }
 
     async steamID(name) {
-        const player = this.#db.get("player");
+        const player = this.#db.get("main").get("player");
         const players = await player.findAll({
             where: {
                 SteamName: {
@@ -270,5 +288,4 @@ module.exports = class ContextManager {
             ))
             .join("\n");
     }
-
 }

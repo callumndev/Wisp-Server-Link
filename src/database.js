@@ -14,7 +14,7 @@ module.exports = class DataBase {
             dialect: "mysql"
         });
 
-        const modelsPath = path.join(__dirname, "models");
+        const modelsPath = path.join(__dirname, "models", database);
         const models = fs.readdirSync(modelsPath).map(model => ({
             name: model.replace(".js", ""),
             model: require(path.join(modelsPath, model))
@@ -31,7 +31,7 @@ module.exports = class DataBase {
 
     get(model) {
         if (!this.#models.has(model)) {
-            throw `Unknown model "${model}"`;
+            throw new Error(`Unknown model "${model}"`);
         }
         return this.#models.get(model);
     }

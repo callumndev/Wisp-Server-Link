@@ -1,12 +1,19 @@
 const { Client, Intents, Constants } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
+const Logger = require("./logger");
+const Config = require("./config");
+const Utils = require("./utils");
+const ContextManager = require("./contextManager");
+const { MessageEmbed } = require("discord.js");
+const CronJob = require('cron').CronJob;
+
 
 function clientOptions(options) {
     if (Array.isArray(options.intents)) {
         options.intents = options.intents.map(intent => {
             if (!Intents.FLAGS[intent]) {
-                throw `Unknown intent "${intent}"`;
+                throw new Error(`Unknown intent "${intent}"`);
             }
 
             return Intents.FLAGS[intent];
@@ -15,21 +22,32 @@ function clientOptions(options) {
     return options;
 }
 module.exports = class Bot extends Client {
+    logger = new Logger();
+    config = Config;
+    utils = new Utils();
+
     constructor(options) {
         super(clientOptions(options));
         
-        this.apiRoutes = new Map();
+        this.ctx = new Map();
         this.services = new Map();
         this.subscribers = new Map();
         this.commands = new Map();
         
-        this.logger = null;
-        this.config = null;
+        for (const guild in this.config.context) {
+            if (Object.hasOwnProperty.call(this.config.context, guild)) {
+                this.ctx.set(guild, ContextManager.Create(guild));
+            }
+        }
+        new CronJob(this.config.clearServerDataCacheCronTime, () => this.ctx.forEach(async (ctx, guild) => {
+            this.ctx.set(guild, ctx.clearServerDataCache());
+            this.logger.debug(`Cleared server data cache of server ${ctx.server} (${guild})`);
+        })).start();
         
         this.init();
     }
 
-    init() {        
+    init() {
         // Services
         const servicesPath = path.join(__dirname, "services");
         const servicesErrors = [];
@@ -43,32 +61,12 @@ module.exports = class Bot extends Client {
             }
             this.services.set(name.toLowerCase(), service);
         })
-        this.logger = this.services.get("logger");
-        this.config = this.services.get("config");
-        this.database = this.services.get("database");
         this.services.get("commands").register(this);
         if (servicesErrors.length) {
             this.logger.error("Error invoking services:", ...servicesErrors);
         }
         this.logger.debug(`Finished loading ${this.services.size} services`);
 
-
-        // API Routes
-        const apiRoutesPath = path.join(__dirname, "api-routes");
-        const apiRoutesErrors = [];
-        fs.readdirSync(apiRoutesPath).forEach(routeName => {
-            let route = require(path.join(apiRoutesPath, routeName));
-            try {
-                route = new route(this);
-            } catch (err) {
-                apiRoutesErrors.push(err);
-            }
-            this.apiRoutes.set(route.apiRoute, route);
-        })
-        if (apiRoutesErrors.length) {
-            this.logger.error("Error invoking routes:", ...apiRoutesErrors);
-        }
-        
 
         // Subscribers
         const subscribersPath = path.join(__dirname, "subscribers");
@@ -80,15 +78,15 @@ module.exports = class Bot extends Client {
         })
         for (const event of Object.values(Constants.Events)) {
             if (event == "raw") continue;
-            
+
             this.on(event, (...args) => {
                 if (event == "debug") {
-                    if (this.config.get("enableDiscordJSDebug")) {
+                    if (this.config.enableDiscordJSDebug) {
                         this.logger.debug(...args);
                     }
                     return;
                 }
-                
+
                 this.subscriberHandler(event, args);
             })
         }
@@ -97,7 +95,7 @@ module.exports = class Bot extends Client {
 
         // Start
         this.logger.debug(`Logging in`);
-        this.login(this.services.get("config").get("token"));
+        this.login(this.config.token);
     }
 
     async subscriberHandler(event, data) {
@@ -119,5 +117,70 @@ module.exports = class Bot extends Client {
         }
 
         this.logger.debug(`Finished executing all subscribers for event ${event}`);
+    }
+
+    error(interaction, type) {
+        const errors = [
+            // Services
+            {
+                type: "api",
+                title: "API Error",
+                description: "Error interacting with the game panel API, please try again later"
+            },
+            {
+                type: "ctx",
+                title: "Context Error",
+                description: `No context exists for guild "${interaction.guild.id}"`,
+                log: `No context exists for guild ${interaction.guild.name} (${interaction.guild.id})`
+            },
+            // Power States
+            {
+                type: "server_offline",
+                title: "Server Offline",
+                description: "The server you are trying to perform an action on is offline"
+            },
+            {
+                type: "server_already_offline",
+                title: "Server Offline",
+                description: "The server you are trying to stop is already offline"
+            },
+            {
+                type: "server_already_online",
+                title: "Server Online",
+                description: "The server you are trying to start is already online"
+            },
+            // Server Actions
+            {
+                type: "stop_server",
+                title: "Power Signal Error",
+                description: "There was an error stopping the server, please try again later"
+            },
+            {
+                type: "start_server",
+                title: "Power Signal Error",
+                description: "There was an error starting the server, please try again later"
+            },
+            {
+                type: "restart_server",
+                title: "Power Signal Error",
+                description: "There was an error restarting the server, please try again later"
+            },
+            // Servers
+            {
+                type: "no_servers",
+                title: "No Servers",
+                description: "There where no servers found, please try again later"
+            },
+        ]
+        const { title, description, log } = errors.find(error => error.type == type);
+        if (log) {
+            this.logger.error(log);
+        }
+
+        const embed = new MessageEmbed()
+            .setTitle(title)
+            .setDescription(description)
+            .setColor("RED");
+        return interaction.editReply({ embeds: [embed] });
     }
 }
