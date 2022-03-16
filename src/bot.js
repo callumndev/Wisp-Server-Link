@@ -149,6 +149,7 @@ module.exports = class Bot extends Client {
                 title: "Server Online",
                 description: "The server you are trying to start is already online"
             },
+            
             // Server Actions
             {
                 type: "stop_server",
@@ -169,7 +170,12 @@ module.exports = class Bot extends Client {
             {
                 type: "no_servers",
                 title: "No Servers",
-                description: "There where no servers found, please try again later"
+                description: "There were no servers found, please try again later"
+            },
+            {
+                type: "no_players",
+                title: "No Players",
+                description: "No players found on the server"
             },
         ]
         const { title, description, log } = errors.find(error => error.type == type);
