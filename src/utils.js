@@ -1,5 +1,6 @@
 module.exports = class Utils {
     dayjs = require("dayjs");
+    #pluralize = require("pluralize");
     
     constructor() {
         this.dayjs.extend(require("dayjs/plugin/duration"));
@@ -32,5 +33,9 @@ module.exports = class Utils {
             let collector = message.createMessageComponentCollector({ filter, time, max });
             collector.on("end", collected => resolve(max == 1 ? collected.first() : collected))
         });
+    }
+
+    pluralize(word, count) {
+        return this.#pluralize(word, count);
     }
 }
