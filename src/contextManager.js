@@ -78,12 +78,15 @@ module.exports = class ContextManager {
     }
 
     async #fetchServerData(options = { includeAllocations: false, fetchResources: false }) {
-        let serverData = await this.#getRequest(`/servers/${this.#ctx.server}${options.includeAllocations ? "?include=allocations" : ""}`);
-        if (!serverData || serverData.object != "server") return null;
+        const url = `/servers/${this.#ctx.server}${options.includeAllocations ? "?include=allocations" : ""}`;
+
+        let serverData = await this.#getRequest(url);
+        if (!serverData || serverData.object != "server") {
+            this.logger.warn("Server data did not return a server object");
+            return null;
+        }
 
         serverData = serverData.attributes;
-        if (serverData.description.includes("SERVER_LINK_HIDE")) return false;
-
         let server = {
             id: serverData.uuid_short,
             name: serverData.name
@@ -91,7 +94,10 @@ module.exports = class ContextManager {
 
         if (options.includeAllocations) {
             let allocations = serverData.relationships.allocations;
-            if (!allocations || allocations.object != "list" || !Array.isArray(allocations.data)) return null;
+            if (!allocations || allocations.object != "list" || !Array.isArray(allocations.data)) {
+                this.logger.warn("Allocations object did not return a allocation list")
+                return null;
+            }
 
             allocations = allocations.data;
 
@@ -99,7 +105,10 @@ module.exports = class ContextManager {
                 .filter(allocation => allocation.object == "allocation" && allocation.attributes)
                 .map(allocation => allocation.attributes)
                 .find(allocation => allocation.primary)
-            if (!allocation) return null;
+            if (!allocation) {
+                this.logger.warn("Unable to find primary server allocation");
+                return null;
+            }
 
             server = Object.assign(server, {
                 ip: [allocation.ip, allocation.port].join(":")
@@ -127,7 +136,7 @@ module.exports = class ContextManager {
                 if (Array.isArray(queryPlayers)) {
                     players = queryPlayers.map(player => ({
                         name: player.name,
-                        timeConnected: player.time
+                        timeConnected: this.utils.humanize(player.time, "seconds")
                     }))
                     playerCount = players.length;
                 }
