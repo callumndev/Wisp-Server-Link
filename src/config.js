@@ -10,7 +10,7 @@ module.exports = {
     testingGuild: "948356210342658098",
     updateCommandsGloballyOnReady: JSON.parse(process.env.UPDATE_COMMANDS_GLOBALLY_ON_READY),
     updateCommandsTestingGuildOnReady: JSON.parse(process.env.UPDATE_COMMANDS_TESTING_GUILD_ON_READY),
-    clearServerDataCacheCronTime: "*/15 * * * *",
+    clearServerDataCacheCronTime: "*/5 * * * *",
     admins: [
         "204308161732149248", // Radon
         "373965085283975171", // Callum 1
