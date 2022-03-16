@@ -1,34 +1,75 @@
-const { SlashCommandBuilder, SlashCommandStringOption } = require("@discordjs/builders");
-const { MessageEmbed } = require("discord.js");
+const { SlashCommandBuilder } = require("@discordjs/builders");
+const { Op } = require("sequelize");
+const { table } = require("table");
+const tableConfig = {
+	border: {
+		topBody: `─`,
+		topJoin: `┬`,
+		topLeft: `┌`,
+		topRight: `┐`,
+
+		bottomBody: `─`,
+		bottomJoin: `┴`,
+		bottomLeft: `└`,
+		bottomRight: `┘`,
+
+		bodyLeft: `│`,
+		bodyRight: `│`,
+		bodyJoin: `│`,
+
+		joinBody: `─`,
+		joinLeft: `├`,
+		joinRight: `┤`,
+		joinJoin: `┼`
+	},
+	singleLine: true
+}
 
 module.exports = {
 	ephemeral: false,
 	adminOnly: false,
 	data: new SlashCommandBuilder()
 		.setName("players")
-		.setDescription("View a list of players on a specific server")
-		.addStringOption(
-			new SlashCommandStringOption()
-				.setName("server")
-				.setDescription("The ID, name or IP of the server you want to view")
-				.setRequired(false)
-		),
+		.setDescription("View a list of players on the server"),
 	async execute({ bot, interaction }) {
-		const api = bot.services.get("api");
-		const utils = bot.services.get("utils");
+		const ctx = bot.ctx.get(interaction.guild.id);
+		if (!ctx) return bot.error(interaction, "ctx");
 
-		const { success, data: servers } = await api.get("/servers?include=allocations");
-		if (!success) return api.apiError(interaction);
+		const serverData = await ctx.serverData({ fetchResources: true });
+		if (!serverData) return bot.error(interaction, "api");
+		if (!serverData.serverOnline) return bot.error(interaction, "server_offline");
+		if (serverData.playerCount == 0) return bot.error(interaction, "no_players");
 
-		const server = utils.getServerFromID({ bot, interaction, servers });
-		const embed = new MessageEmbed()
-			.setTitle(`${server.serverOnline ? ":green_circle:" : ":red_circle:"} ${server.name}`)
-			.setDescription(server.players.sort((a, b) => b.timeConnected - a.timeConnected).map(player => [
-				`**Name:** ${player.name}`,
-				`**Time Connected:** ${utils.humanize(player.timeConnected, "seconds")}`
-			].join(" - ")).join("\n") || "No players connected!")
-			.setColor("BLUE");
+		const playerModel = await ctx.getModel("main", "player");
+		const playerTable = [
+			["Name", "Time Connected", "Steam ID"],
+			...await Promise.all(
+				serverData.players
+					.sort((a, b) => b.timeConnected - a.timeConnected)
+					.map(async player => {
+						const dbPlayer = await playerModel.findOne({
+							where: {
+								SteamName: {
+									[Op.regexp]: player.name.toLowerCase()
+								}
+							},
+							raw: true
+						});
 
-		interaction.editReply({ embeds: [embed] });
+						return [player.name, player.timeConnected, dbPlayer.SteamID || ""].filter(Boolean)
+					})
+			)
+		]
+
+		interaction.editReply({
+			embeds: [{
+				title: [
+					serverData.name,
+					`${serverData.playerCount} ${ctx.utils.pluralize("Player", serverData.playerCount)}`
+				].join(" - "),
+				description: "```" + table(playerTable, tableConfig) + "```",
+				color: "BLUE"
+			}]
+		});
 	}
 }
