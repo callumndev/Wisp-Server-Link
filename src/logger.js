@@ -26,7 +26,7 @@ module.exports = class Logger {
     }
     
     warn(...args) {
-        this.#log(this.#colourMethod("WARN:"), ...this.#colourArgs(args, "yellowrBright"));
+        this.#log(this.#colourMethod("WARN:"), ...this.#colourArgs(args, "yellowBright"));
     }
 
     info(...args) {
