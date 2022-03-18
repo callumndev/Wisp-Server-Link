@@ -111,7 +111,7 @@ module.exports = class ContextManager {
             }
 
             server = Object.assign(server, {
-                ip: [allocation.ip, allocation.port].join(":")
+                ip: [allocation.ip, allocation.port].join(":") || "Unknown"
             });
         }
 
@@ -284,17 +284,17 @@ module.exports = class ContextManager {
             limit: 10,
             raw: true
         });
-        if (!players.length) return "No players found!";
+        if (!players.length) return [];
 
         return players
             .sort((a, b) => b.TimePlayed - a.TimePlayed)
             .map(player => (
-                [
-                    `**Player:** ${player.SteamName} (${player.SteamID})`,
-                    `**Time Played:** ${this.utils.humanize(player.TimePlayed, "seconds")}`,
-                    player.Rank && `**Rank:** ${player.Rank && this.isServerStaff(player.Rank) ? ":shield: " : ""}${player.Rank}`,
-                ].filter(Boolean).join(" - ")
+                {
+                    steamName: player.SteamName,
+                    steamID: player.SteamID,
+                    timePlayed: this.utils.humanize(player.TimePlayed, "seconds"),
+                    rank: `${player.Rank && this.isServerStaff(player.Rank) ? "(STAFF) " : ""}${player.Rank || "Unknown"}`
+                }
             ))
-            .join("\n");
     }
 }

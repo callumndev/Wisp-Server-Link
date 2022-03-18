@@ -1,6 +1,31 @@
+const tableConfig = {
+	border: {
+		topBody: `─`,
+		topJoin: `┬`,
+		topLeft: `┌`,
+		topRight: `┐`,
+
+		bottomBody: `─`,
+		bottomJoin: `┴`,
+		bottomLeft: `└`,
+		bottomRight: `┘`,
+
+		bodyLeft: `│`,
+		bodyRight: `│`,
+		bodyJoin: `│`,
+
+		joinBody: `─`,
+		joinLeft: `├`,
+		joinRight: `┤`,
+		joinJoin: `┼`
+	},
+	singleLine: true
+}
+
 module.exports = class Utils {
     dayjs = require("dayjs");
     #pluralize = require("pluralize");
+    #table = require("table").table;
     
     constructor() {
         this.dayjs.extend(require("dayjs/plugin/duration"));
@@ -37,5 +62,9 @@ module.exports = class Utils {
 
     pluralize(word, count) {
         return this.#pluralize(word, count);
+    }
+
+    table(data, config) {
+        return this.#table(data, Object.assign(tableConfig, config));
     }
 }

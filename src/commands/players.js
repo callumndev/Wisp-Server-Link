@@ -1,29 +1,5 @@
 const { SlashCommandBuilder } = require("@discordjs/builders");
 const { Op } = require("sequelize");
-const { table } = require("table");
-const tableConfig = {
-	border: {
-		topBody: `─`,
-		topJoin: `┬`,
-		topLeft: `┌`,
-		topRight: `┐`,
-
-		bottomBody: `─`,
-		bottomJoin: `┴`,
-		bottomLeft: `└`,
-		bottomRight: `┘`,
-
-		bodyLeft: `│`,
-		bodyRight: `│`,
-		bodyJoin: `│`,
-
-		joinBody: `─`,
-		joinLeft: `├`,
-		joinRight: `┤`,
-		joinJoin: `┼`
-	},
-	singleLine: true
-}
 
 module.exports = {
 	ephemeral: false,
@@ -67,7 +43,7 @@ module.exports = {
 					serverData.name,
 					`${serverData.playerCount} ${ctx.utils.pluralize("Player", serverData.playerCount)}`
 				].join(" - "),
-				description: "```" + table(playerTable, tableConfig) + "```",
+				description: "```" + ctx.utils.table(playerTable) + "```",
 				color: "BLUE"
 			}]
 		});

@@ -19,10 +19,27 @@ module.exports = {
 		const serverData = await ctx.serverData();
 		if (!serverData) return bot.error(interaction, "api");
 
+		const players = await ctx.steamID(interaction.options.get("name").value);
+		if (!players.length) return bot.error(interaction, "no_players_query");
+
+		const playerTable = [
+			["Steam Name", "Steam ID", "Time Played"],
+			...await Promise.all(
+				players
+					.map(player => (
+						[
+							player.steamName,
+							player.steamID,
+							player.timePlayed
+						]
+					))
+			)
+		]
+
 		interaction.editReply({
 			embeds: [{
 				title: `${serverData.name} - Steam ID Search`,
-				description: await ctx.steamID(interaction.options.get("name").value),
+				description: "```" + ctx.utils.table(playerTable) + "```",
 				color: "BLUE"
 			}]
 		});

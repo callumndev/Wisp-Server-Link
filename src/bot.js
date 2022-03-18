@@ -177,6 +177,11 @@ module.exports = class Bot extends Client {
                 title: "No Players",
                 description: "No players found on the server"
             },
+            {
+                type: "no_players_query",
+                title: "No Players Found",
+                description: "No players found in your query"
+            },
         ]
         const { title, description, log } = errors.find(error => error.type == type);
         if (log) {
