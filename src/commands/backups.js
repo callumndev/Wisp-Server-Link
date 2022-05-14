@@ -6,57 +6,20 @@ module.exports = {
 	adminOnly: true,
 	data: new SlashCommandBuilder()
 		.setName("backups")
-		.setDescription("Retrieve a list of backups from a specific server")
-		.addStringOption(
-			new SlashCommandStringOption()
-				.setName("server")
-				.setDescription("The ID, name or IP of the server you want to view")
-				.setRequired(false)
-		),
+		.setDescription("Retrieve a list of backups from a specific server"),
 	async execute({ bot, interaction }) {
-		const api = bot.services.get("api");
-		const utils = bot.services.get("utils");
-
-		const { success: successAllServers, data: servers } = await api.get("/servers?include=allocations");
-		if (!successAllServers) return api.apiError(interaction);
-
-		const server = utils.getServerFromID({ bot, interaction, servers });
-		if (!server.serverOnline) return interaction.editReply({
-			embeds: [
-				new MessageEmbed()
-					.setTitle(`${server.serverOnline ? ":green_circle:" : ":red_circle:"} ${server.name}`)
-					.setDescription("Server is offline")
-					.setColor("RED")
-			]
-		});
-
-		const { success, data: backups } = await api.get(`/servers/${server.id}/backups`);
-		if (!success) return api.apiError(interaction);
-
+		const ctx = bot.ctx.get(interaction.guild.id);
+		if (!ctx) return bot.error(interaction, "ctx");
+		
+		const serverData = await ctx.serverData({ fetchResources: true });
+		if (!serverData) return bot.error(interaction, "api");
+		if (!serverData.serverOnline) return bot.error(interaction, "server_offline");
+		
+		const backups = await ctx.backups();
 		const embed = new MessageEmbed()
-			.setTitle(`${server.serverOnline ? ":green_circle:" : ":red_circle:"} ${server.name}`)
+			.setTitle(serverData.name)
 			.setDescription(!backups.length ? "No backups found!" : "")
-			.addFields(
-				backups.map((backupObject, i) => {
-					if (backupObject.object != "backup") return;
-
-					const backup = backupObject.attributes;
-					if (!backup) return;
-
-					return {
-						name: `${i + 1}.) ${backup.name}`,
-						get value() {
-							const description = [
-								bot.config.debug && { name: "UUID Short", value: backup.uuid_short },
-								{ name: "Size", value: utils.bytesToString(backup.bytes) },
-								{ name: "Created", value: `${utils.humanize(utils._dayjs(backup.created_at).diff(utils._dayjs(new Date()), "seconds"), "seconds")} ago` },
-							].filter(Boolean);
-							return description.map(desc => `**${desc.name}:** ${desc.value}`).join("\n");
-						},
-						inline: true
-					}
-				}).filter(Boolean)
-			)
+			.addFields(backups)
 			.setColor("GREEN");
 
 		interaction.editReply({ embeds: [embed] });

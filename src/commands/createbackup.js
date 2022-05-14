@@ -12,38 +12,29 @@ module.exports = {
 				.setName("name")
 				.setDescription("The name of the backup to create")
 				.setRequired(true)
-		)
-		.addStringOption(
-			new SlashCommandStringOption()
-				.setName("server")
-				.setDescription("The ID, name or IP of the server you want to view")
-				.setRequired(false)
 		),
 	async execute({ bot, interaction }) {
-		const api = bot.services.get("api");
-		const utils = bot.services.get("utils");
-
-		const { success: successAllServers, data: servers } = await api.get("/servers?include=allocations");
-		if (!successAllServers) return api.apiError(interaction);
-
-		const server = utils.getServerFromID({ bot, interaction, servers });
-		if (!server.serverOnline) return interaction.editReply({
-			embeds: [
-				new MessageEmbed()
-					.setTitle(`${server.serverOnline ? ":green_circle:" : ":red_circle:"} ${server.name}`)
-					.setDescription("Server is offline")
-					.setColor("RED")
-			]
-		});
-
-		const { success } = await api.post(`/servers/${server.id}/backups`, { name: interaction.options.get("name").value });
-		if (!success) return api.apiError(interaction);
+		const ctx = bot.ctx.get(interaction.guild.id);
+		if (!ctx) return bot.error(interaction, "ctx");
 		
-		const embed = new MessageEmbed()
-			.setTitle(`${server.serverOnline ? ":green_circle:" : ":red_circle:"} ${server.name}`)
-			.setDescription("Creating server backup")
-			.setColor("GREEN");
+		const serverData = await ctx.serverData({ fetchResources: true });
+		if (!serverData) return bot.error(interaction, "api");
+		if (!serverData.serverOnline) return bot.error(interaction, "server_offline");
+		
+		const backups = await ctx.backups();
+		const backupName = interaction.options.get("name").value;
+		const backup = backups.find(backup => backup.backupName.toLowerCase() == backupName.toLowerCase());
+		if (backup) return bot.error(interaction, "backup_exist");
+		
+		const create = await ctx.createBackup(backupName);
+		if (!create) return bot.error(interaction, "api");
 
-		interaction.editReply({ embeds: [embed] });
+		interaction.editReply({
+			embeds: [{
+				title: serverData.name,
+				description: `Creating backup ${backupName}`,
+				color: "GREEN"
+			}]
+		});
 	}
 }

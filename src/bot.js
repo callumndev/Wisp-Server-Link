@@ -182,6 +182,17 @@ module.exports = class Bot extends Client {
                 title: "No Players Found",
                 description: "No players found in your query"
             },
+            // Backups
+            {
+                type: "backup_not_exist",
+                title: "No Backup Found",
+                description: "No backups found in your query"
+            },
+            {
+                type: "backup_exist",
+                title: "Backup Already Exists",
+                description: "A backup was already found in your query"
+            },
         ]
         const { title, description, log } = errors.find(error => error.type == type);
         if (log) {

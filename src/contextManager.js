@@ -82,7 +82,7 @@ module.exports = class ContextManager {
 
         let serverData = await this.#getRequest(url);
         if (!serverData || serverData.object != "server") {
-            this.logger.warn("Server data did not return a server object");
+            this.logger.warn("Server data did not return a server object", serverData);
             return null;
         }
 
@@ -249,7 +249,10 @@ module.exports = class ContextManager {
         const backups = backupsRequest.data;
         if (!backups) return null;
 
-        return backups.map(backup => {
+        return backups.map((backup, i) => {
+            if (backup.object != "backup") return;
+            backup = backup.attributes;
+            
             const description = [
                 this.config.debug && { name: "UUID Short", value: backup.uuid_short },
                 { name: "Size", value: this.utils.formatBytes(backup.bytes) },
@@ -258,18 +261,21 @@ module.exports = class ContextManager {
 
             return {
                 name: `${i + 1}.) ${backup.name}`,
-                value: description.map(desc => `**${desc.name}:** ${desc.value}`).join("\n")
+                value: description.map(desc => `**${desc.name}:** ${desc.value}`).join("\n"),
+                inline: true,
+                backupName: backup.name,
+                backupID: backup.uuid_short
             }
-        });
+        }).filter(Boolean);
     }
 
     async createBackup(name) {
-        const createBackupRequest = await this.#postRequest(`/servers/${server.id}/backups`, { name });
+        const createBackupRequest = await this.#postRequest(`/servers/${this.#ctx.server}/backups`, { name });
         return createBackupRequest.status == 200;
     }
 
     async deployBackup(backup) {
-        const deployBackupRequest = await this.#postRequest(`/servers/${server.id}/backups/${backup}/deploy`);
+        const deployBackupRequest = await this.#postRequest(`/servers/${this.#ctx.server}/backups/${backup}/deploy`);
         return deployBackupRequest.status == 204;
     }
 
