@@ -68,6 +68,33 @@ module.exports = {
                 "admin",
                 "moderator"
             ],
+        },
+        // Infamous Gaming
+        "949636182495600660": {
+            server: "ce98c5f9",
+            database: {
+                main: {
+                    hostname: process.env.IG_IGA_DB_HOSTNAME,
+                    port: process.env.IG_IGA_DB_PORT,
+                    username: process.env.IG_IGA_DB_USERNAME,
+                    password: process.env.IG_IGA_DB_PASSWORD,
+                    database: process.env.IG_IGA_DB_DATABASE
+                }
+            },
+            rconRequests: {
+                requestChannel: "949636183636443190",
+                acceptorRoles: [
+                    "949636182520778786", // owner
+                    "949636182520778783" // bot dev
+                ]
+            },
+            staffUserGroups: [
+                "owner",
+                "superadmin",
+                "admin+",
+                "admin",
+                "moderator"
+            ],
         }
     }
 }
