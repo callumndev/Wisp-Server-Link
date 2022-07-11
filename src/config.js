@@ -71,7 +71,7 @@ module.exports = {
         },
         // Infamous Gaming
         "949636182495600660": {
-            server: "ce98c5f9",
+            server: "b928940c",
             database: {
                 main: {
                     hostname: process.env.IG_IGA_DB_HOSTNAME,
