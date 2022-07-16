@@ -7,5 +7,5 @@ module.exports = {
         primaryKey: true
     },
     message: Sequelize.STRING,
-    command: Sequelize.STRING,
+    command: Sequelize.STRING
 }
