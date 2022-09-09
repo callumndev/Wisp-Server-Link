@@ -22,53 +22,6 @@ module.exports = {
     panelDomain: "infamousgaming.panel.gg",
     apiKey: process.env.API_KEY,
     context: {
-        // callumn.dev's bot testing server
-        "948356210342658098": {
-            server: "ce98c5f9",
-            database: {
-                darkrp: {
-                    hostname: process.env.IG_DARKRP_DB_HOSTNAME,
-                    port: process.env.IG_DARKRP_DB_PORT,
-                    username: process.env.IG_DARKRP_DB_USERNAME,
-                    password: process.env.IG_DARKRP_DB_PASSWORD,
-                    database: process.env.IG_DARKRP_DB_DATABASE
-                },
-                main: {
-                    hostname: process.env.IG_IGA_DB_HOSTNAME,
-                    port: process.env.IG_IGA_DB_PORT,
-                    username: process.env.IG_IGA_DB_USERNAME,
-                    password: process.env.IG_IGA_DB_PASSWORD,
-                    database: process.env.IG_IGA_DB_DATABASE
-                },
-                server: {
-                    hostname: process.env.IG_SERVER_DB_HOSTNAME,
-                    port: process.env.IG_SERVER_DB_PORT,
-                    username: process.env.IG_SERVER_DB_USERNAME,
-                    password: process.env.IG_SERVER_DB_PASSWORD,
-                    database: process.env.IG_SERVER_DB_DATABASE
-                },
-                token: {
-                    hostname: process.env.IG_TOKEN_DB_HOSTNAME,
-                    port: process.env.IG_TOKEN_DB_PORT,
-                    username: process.env.IG_TOKEN_DB_USERNAME,
-                    password: process.env.IG_TOKEN_DB_PASSWORD,
-                    database: process.env.IG_TOKEN_DB_DATABASE
-                },
-            },
-            rconRequests: {
-                requestChannel: "950168317375688775",
-                acceptorRoles: [
-                    "950169491545927731"
-                ]
-            },
-            staffUserGroups: [
-                "owner",
-                "superadmin",
-                "admin+",
-                "admin",
-                "moderator"
-            ],
-        },
         // Infamous Gaming
         "949636182495600660": {
             server: "b928940c",
@@ -86,6 +39,33 @@ module.exports = {
                 acceptorRoles: [
                     "949636182520778786", // owner
                     "949636182520778783" // bot dev
+                ]
+            },
+            staffUserGroups: [
+                "owner",
+                "superadmin",
+                "admin+",
+                "admin",
+                "moderator"
+            ],
+        },
+        // Fractal Gaming
+        "739776051093176401": {
+            server: "5b753415",
+            database: {
+                main: {
+                    hostname: process.env.FRACTAL_IGA_DB_HOSTNAME,
+                    port: process.env.FRACTAL_IGA_DB_PORT,
+                    username: process.env.FRACTAL_IGA_DB_USERNAME,
+                    password: process.env.FRACTAL_IGA_DB_PASSWORD,
+                    database: process.env.FRACTAL_IGA_DB_DATABASE
+                }
+            },
+            rconRequests: {
+                requestChannel: "828816551888945193",
+                acceptorRoles: [
+                    "805354695815725088", // owner
+                    "805354696960114709" // bot dev
                 ]
             },
             staffUserGroups: [
