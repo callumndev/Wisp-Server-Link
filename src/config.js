@@ -19,11 +19,11 @@ module.exports = {
     ],
     
     // WISP
-    panelDomain: "infamousgaming.panel.gg",
-    apiKey: process.env.API_KEY,
     context: {
         // Infamous Gaming
         "949636182495600660": {
+            panelDomain: "infamousgaming.panel.gg",
+            apiKey: process.env.API_KEY_INFAMOUSGAMING,
             server: "b928940c",
             database: {
                 main: {
@@ -51,6 +51,8 @@ module.exports = {
         },
         // Fractal Gaming
         "739776051093176401": {
+            panelDomain: "thecodehub.panel.gg",
+            apiKey: process.env.API_KEY_THECODEHUB,
             server: "5b753415",
             database: {
                 main: {

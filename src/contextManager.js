@@ -37,11 +37,11 @@ module.exports = class ContextManager {
         this.#rconRequests = this.#ctx.rconRequests;
         this.#staffUserGroups = this.#ctx.staffUserGroups;
         this.#instance = axios.create({
-            baseURL: `https://${this.config.panelDomain}/api/client`,
+            baseURL: `https://${this.#ctx.panelDomain}/api/client`,
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "application/vnd.wisp.v1+json",
-                "Authorization": `Bearer ${this.config.apiKey}`
+                "Authorization": `Bearer ${this.#ctx.apiKey}`
             }
         });
     }
