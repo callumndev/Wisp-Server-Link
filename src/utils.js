@@ -43,7 +43,7 @@ module.exports = class Utils {
         const sizes = ["b", "kb", "mb", "gb", "tb"];
         
         const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + sizes[i].toUpperCase();
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + (sizes[i] ? sizes[i].toUpperCase() : "unknown");
     }
     
     findByKey(map, searchValue) {
