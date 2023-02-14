@@ -19,7 +19,7 @@ module.exports = {
 			{ name: "Players", value: serverData.serverOnline ? `${serverData.playerCount}/${serverData.maxPlayers}` : "Offline" },
 			{ name: "Gamemode", value: serverData.serverOnline ? serverData.gamemode : "Offline" },
 			{ name: "Map", value: serverData.serverOnline ? serverData.map : "Offline" },
-		].filter(Boolean).map(info => Object.assign(info, { inline: true }));
+		].filter(Boolean).map(info => Object.assign(info, { inline: true })).filter(info => info.length != 0);
 
 		interaction.editReply({
 			embeds: [{
